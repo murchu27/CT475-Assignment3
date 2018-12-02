@@ -1,8 +1,10 @@
+#imports
 import numpy as np
 import math
 import random
 from statistics import mean
 
+############# kFoldCrossValidation class written by Mark
 class kFoldCrossValidation(object):
 	
 	def main(self, classifier, arrIn, arrOut, K, N):
@@ -24,7 +26,6 @@ class kFoldCrossValidation(object):
 					Training += folds[k]
 					TrainingOut += output[k]
 			classifier.train(np.array(Training),np.array(TrainingOut),classNames)
-			#classifier.fit(Training, TrainingOut)
 			predictions = classifier.predict(Test)	
 			i = 0
 			correct = 0 
@@ -109,8 +110,6 @@ class kFoldCrossValidation(object):
 	def stratifiedFolds(self, ArrIn, ArrOut, K, N):
 
 		sortedIn, sortedOut, Array, classNames = self.splitArrays(ArrIn, ArrOut, K, N)
-	#	print('*********HELLO************')
-		#print(Array)
 		TrainingIndexData = []
 		TestIndexData = []
 		TrainingInData = []
@@ -120,9 +119,6 @@ class kFoldCrossValidation(object):
 
 		for i in range(len(Array)):
 			random.shuffle(Array[i])
-		#	print(Array)
-		#	print(len(Array[i]))
-		#	print(len(Array[i])/K)
 			length = (math.floor(len(Array[i])/K))*2
 			remainder = len(Array[i]) % K
 
@@ -133,9 +129,7 @@ class kFoldCrossValidation(object):
 
 			TrainingIndexData += Array[i][:length]
 			TestIndexData += Array[i][length:]
-		#('*********KILL ME************')
-		#print(TrainingIndexData)
-		#print(TestIndexData)
+
 		for elem in TrainingIndexData:
 
 			TrainingInData.append(ArrIn[elem])
@@ -144,73 +138,4 @@ class kFoldCrossValidation(object):
 			TestInData.append(ArrIn[elem])
 			TestOutData.append(ArrOut[elem])
 
-	#	print(TrainingInData)
-#		print(TrainingOutData)
-#		print(TestInData)
-#		print(TestOutData)
-
-
-
-
-
-
-
-		#shuffleArr = list(zip(ArrIn, ArrOut))
-
-		#random.shuffle(shuffleArr)
-
-		#ArrIn, ArrOut = zip(*shuffleArr)
-		#sortedIn, sortedOut, Array, classNames = self.splitArrays(ArrIn, ArrOut, K, N)
-
-		#output, folds = self.splitArrays(ArrIn, ArrOut, K, N)
-		#TrainingInData = []
-		#TestInData = []
-		#TrainingOutData = []
-		#TestOutData = []
-
-		#for k in range(K):
-	#		TrainingInDataArr = []
-	#		TestInDataArr = []
-	#		TrainingOutDataArr = []
-	#		TestOutDataArr = []
-#
-#			length = len(sortedIn[k])/K
-#
-#			thing1 = math.floor(length)
-#			thing2 = len(sortedIn[k]) % K
-#
-#			actLength = (thing1 * 2) + (thing2 * 2)
-#			print(sortedIn[:(actLength-1)])
-##			TrainingInDataArr.append(sortedIn[:(actLength-1)])
-#			TrainingOutDataArr.append(sortedIn[actLength:])
-#			TestInDataArr.append(sortedIn[:(actLength-1)])
-#			TestOutDataArr.append(sortedIn[actLength:])
-#			TrainingInData.append(TrainingInDataArr)
-#			TestInData.append(TestInDataArr)
-#			TrainingOutData.append(TrainingOutDataArr)
-#			TestOutData.append(TestOutDataArr)
-#		#i = 1
-		#for k in range(K):
-		#	TrainingInDataArr = []
-		#	TestInDataArr = []
-		#	TrainingOutDataArr = []
-		#	TestOutDataArr = []
-		#	if i >= K:
-		#		i = 0
-		#	j = i + 1
-		#	if j >= K:
-		##		j = 0
-		#	TrainingInDataArr.append(folds[k] + folds[i])
-		#	TrainingOutDataArr.append(output[k] + output[i])
-		#	TestInDataArr.append(folds[j])
-		#	TestOutDataArr.append(output[j])
-		#	TrainingInData.append(TrainingInDataArr)
-		#	TestInData.append(TestInDataArr)
-		#	TrainingOutData.append(TrainingOutDataArr)
-		#	TestOutData.append(TestOutDataArr)
-		#	i += 1
-		#print(TrainingInData)
-		#print(TrainingOutData)
-		#print(TestInData)
-		#print(TestOutData)
 		return TrainingInData, TestInData, TrainingOutData, TestOutData

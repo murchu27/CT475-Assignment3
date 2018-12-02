@@ -1,16 +1,13 @@
+#imports
 import pandas as pd
 import numpy as np
+import sys, time
 from kFoldCrossValidation import kFoldCrossValidation
 from confusionMatrix import confusionMatrix
-#user interface to read in file
-#should ask for number of classes
 
-#binary svm model
+#SVM model for binary classification
+############# binarySVM class written by Michael
 class binarySVM:
-	#need to have
-	#a hyperplane/separator between classes
-	#a measure of the margin between hyperplane and closest data points
-
 	def __init__(self, features=2):
 		self.features = features
 		self.normal = np.zeros(self.features)
@@ -110,8 +107,6 @@ class binarySVM:
 
 		predicttarget = np.array([])
 		self.distances = np.array([])
-		unsure = 0
-		x = True
 		for u in predictdata:
 			f = np.dot(self.normal, u) + self.intercept
 
@@ -121,17 +116,13 @@ class binarySVM:
 				predicttarget = np.append(predicttarget, self.neg_label)
 			else:
 				predicttarget = np.append(predicttarget, "unsure")
-				unsure += 1
 
-			y = np.sign(f)
-			self.distances = np.append(self.distances, y*(f)/np.linalg.norm(self.normal))
-			if x:
-				#print(self.normal)
-				x=False
-		#print(self.distances)
+			self.distances = np.append(self.distances, np.sign(f)*(f)/np.linalg.norm(self.normal))
 
 		return predicttarget
 
+# SVM model for classification with multiple classes
+############# multiclassSVM class written by Michael (except for a few lines of the predict method)
 class multiclassSVM:
 	def __init__(self, c=2, features=2):
 		self.features = features
@@ -152,91 +143,102 @@ class multiclassSVM:
 
 
 	def predict(self, predictdata):
-	# 	#explanation of steps
-	# 	"""
-	# 	predictdata should an array of data points
+		#explanation of steps
+		"""
+		predictdata should an array of data points
 
-	# 	u represents a point predictdata
-	# 	w represents the normal
-	# 	b represents the intercept
+		u represents a point predictdata
+		w represents the normal
+		b represents the intercept
 
-	# 	predict using the following formula: 
-	# 	dot(w, u) + b < -1 ==> neg_sample
-	# 	dot(w, u) + b > 1 ==> pos_sample
-	# 	|dot(w, u) + b| < 1 ==> not sure
+		predict using the following formula: 
+		dot(w, u) + b < -1 ==> neg_sample
+		dot(w, u) + b > 1 ==> pos_sample
+		|dot(w, u) + b| < 1 ==> not sure
 
-	# 	assign each resulting label to a predicttarget array
-	# 	"""
+		assign each resulting label to a predicttarget array
+		"""
 
-	# 	#seems to make a lot of false classfications atm
-	# 	#come back to this if there is time
-
-		# predicttargets = np.array([])
 		predicttargets = []
 		predictions = []
 
 		for model in self.models:
-			# predicttargets = np.append(predicttargets, model.predict(predictdata))
 			predicttargets.append(model.predict(predictdata))
 
-		# print(predicttargets)
+		############# this loop written by Mark
 		for i in range(len(predicttargets[0])):
-			d = 0
-			#for j in range(d+1, self.c):
-			#	if self.models[j].distances[i] < self.models[d].distances[i]:
-			#		d = j
 			prediction = 'N/A'
 			maxScore = 0.0
 			for k in range(len(predicttargets)):
+				#for predicting data
 				if predicttargets[k][i] != 'other' and predicttargets[k][i] != 'unsure':
 					if maxScore < self.models[k].distances[i]:
 						maxScore = self.models[k].distances[i]
 						prediction = predicttargets[k][i]
 			predictions.append(prediction)
-			#print(i, "||", predicttargets[0][i], ": ", self.models[0].distances[i], "||", predicttargets[1][i], ": ", self.models[1].distances[i], "||", predicttargets[2][i], ": ", self.models[2].distances[i], "||", prediction)
 		return predictions
+		#############
 
+	def probability_predict(self, predictdata):
 
-#determine how to split given dataset
-#also how to repeat this 10 times
+		predicttargets = []
+		predictions = []
 
-def testbinSVM():
-	b = binarySVM(3)
-	assert b.features == 3
-	#print(b.omega)
-	#print(b.omega.all())
-	#print(b.omega.any())
-	#assert list(b.omega) == [0,0,0]
-	#assert b.omega_zero == 0
+		for model in self.models:
+			predicttargets.append(model.predict(predictdata))
+
+		for i in range(len(predicttargets[0])):
+			distances = []
+			for k in range(len(predicttargets)):
+				#for predicting probabilities
+				distances.append(self.models[k].distances[i])
+
+			totalDistances = sum(distances)
+			probabilities = []
+			for k in distances:
+				probabilities.append(k/totalDistances)
+
+		return probabilities
+
 
 def main():
+	############# UI written by Michael
+	fname = input("Specify the file name of the dataset (.csv file format): ")
+	try:
+		f = pd.read_csv(fname).values
+	except FileNotFoundError:
+		print("File not found, aborting")
+		time.sleep(2)
+		sys.exit()
+
+	features = eval(input("Specify the number of attributes that each sample has: "))
+	data = f[:,:features]
+	target = f[:,features]
+
+	classes = eval(input("Specify the number of classes that the classifier will choose between: "))
+	class_labels = input("Specify the labels of each class, separated by commas: ").split(",")
+	if classes != len(class_labels):
+		print("Expected", classes, "classes - instead got", len(class_labels), "classes, aborting")
+		time.sleep(2)
+		sys.exit()
+	for i in range(classes):
+		class_labels[i] = class_labels[i].strip(" ")
+
+	split_size = eval(input("Specify the portion of the dataset to be used for testing as an integer value \
+							e.g., a value of 3 uses one third of the dataset for testing (note, the remainder of the dataset is used for training): "))
+	repetitions = eval("Specify how many times to repeat training (to evaluate average performance): ")
+	folds = eval(input("Specify the number of folds to be used during k-Fold cross-validation: "))
+	############# end of UI
+
+	############# dataset splitting and classifier evaluation written by Mark
 	accuracy = []
-	for x in range(10):
-		owl_features = 4
-		owls_classes = ['LongEaredOwl','SnowyOwl','BarnOwl']
-		owls = pd.read_csv('owls.csv').values
-		data = owls[:,:owl_features]
-		target = owls[:,owl_features]
-		#for i in range(len(owls)):
-		#	print(data[i], target[i], sep='\t')
+	for x in range(repetitions):
+		train_data, test_data, train_target, test_target = kFoldCrossValidation().stratifiedFolds(data.tolist(), target.tolist(), split_size, classes)
 
-		#train_index = np.array(list(range(0,30)) + list(range(45,75)) + list(range(90,120)))
-		#train_data = data[train_index]
-		#train_target = target[train_index]
-		
-		#test_index = np.array(list(range(30,45)) + list(range(75,90)) + list(range(120,135)))
-		#test_data = data[test_index]
-
-	#	print(len(train_data))
-	#	print(len(train_target))
-	#	print(len(test_data))
-		
-		train_data, test_data, train_target, test_target = kFoldCrossValidation().stratifiedFolds(data.tolist(), target.tolist(), 3, 3)
-
-
-		owls_model = multiclassSVM(3, owl_features)
-		owls_model.train(np.array(train_data),np.array(train_target),owls_classes)
-		p = owls_model.predict(test_data)
+		model = multiclassSVM(classes, features)
+		model.train(np.array(train_data),np.array(train_target),class_labels)
+		p = model.predict(test_data)
+		pr = model.probability_predict(test_data)
 
 		correct = 0.0
 		incorrect = 0.0
@@ -247,39 +249,19 @@ def main():
 				incorrect += 1
 		accuracy.append(correct/(incorrect+correct))
 
-		matrix, unclassified = confusionMatrix().main(owls_classes, p, test_target)
-		print(matrix)
-		print(unclassified)
+		matrix, unclassified = confusionMatrix().main(class_labels, p, test_target)
+		#print(matrix)
+		#print(unclassified)
 
-		myScores, avg = kFoldCrossValidation().main(multiclassSVM(3, owl_features), data.tolist(), target.tolist(), 10, 3)
-		print(myScores)
-		print(avg)
+		myScores, avg = kFoldCrossValidation().main(multiclassSVM(classes, features), data.tolist(), target.tolist(), folds, classes)
+		#print(myScores)
+		#print(avg)
+	
 	#print(accuracy)
-	print(np.array(accuracy).mean())
-	"""
-	ai_features = 9 
-	ai_plabel = 'positive'
-	ai_nlabel = 'negative'
-	ai = pd.read_table('autoimmune_transpose.txt').values
-	d = ai[:,:ai_features]
-	t = ai[:,ai_features]
-	#for i in range(len(ai)):
-	#	print(i, d[i], t[i], sep='\t')
-	train_index = np.array([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,251])
-	train_data = d[train_index]
-	train_target = t[train_index]
-	
-	test_index = np.array([250,252,253,254,255,256,257,258,259,260,261,262,263,264,265,266,267,268,269,270,271,272,273,274,275,276,277,278,279,280,281,282,283,284,285,286,287,288,289,290,291,292,293,294,295,296,297,298,299,300,301,302,303,304,305,306,307,308,309,310,311,312,313,314,315,316,317,318,319,320,321,322,323,324,325,326,327,328,329,330,331,332,333,334,335,336,337,338,339,340,341,342,343,344,345,346,347,348,349,350,351,352,353,354,355,356,357,358,359,360,361,362,363,364,365,366,367,368,369,370,371,372,373,374,375])
-	test_data = d[test_index]
-	ai_model = binarySVM(ai_features)
-	ai_model.train(train_data,train_target,ai_plabel,ai_nlabel)
-	a = ai_model.predict(test_data)
-	# for i in range(len(a)):
-	# 	print(a[i], t[test_index[i]])
-	"""
+	#print(np.array(accuracy).mean())
+	input("Done")
+	############# end of splitting and evalutation
 
-
-	
 	
 if __name__ == "__main__":
 	main()

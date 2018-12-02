@@ -1,14 +1,12 @@
-import numpy as np
-
+############# confusionMatrix class written by Mark
 class confusionMatrix(object):
 	
 	def main(self, classNames, pred, output):
 
 		matrix = []
 		unclassified = 0
-		
 		for i in range(len(classNames)):
-			matrix.append(np.zeros(len(classNames),dtype=np.int32).tolist())
+			matrix.append([0, 0, 0])
 
 		for x in range(len(output)):
 			
