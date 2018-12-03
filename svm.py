@@ -179,27 +179,6 @@ class multiclassSVM:
 		return predictions
 		#############
 
-	def probability_predict(self, predictdata):
-
-		predicttargets = []
-		predictions = []
-
-		for model in self.models:
-			predicttargets.append(model.predict(predictdata))
-
-		for i in range(len(predicttargets[0])):
-			distances = []
-			for k in range(len(predicttargets)):
-				#for predicting probabilities
-				distances.append(self.models[k].distances[i])
-
-			totalDistances = sum(distances)
-			probabilities = []
-			for k in distances:
-				probabilities.append(k/totalDistances)
-
-		return probabilities
-
 
 def main():
 	############# UI written by Michael
@@ -226,30 +205,50 @@ def main():
 
 	split_size = eval(input("Specify the portion of the dataset to be used for testing as an integer value \
 							e.g., a value of 3 uses one third of the dataset for testing (note, the remainder of the dataset is used for training): "))
-	repetitions = eval("Specify how many times to repeat training (to evaluate average performance): ")
+	repetitions = eval(input("Specify how many times to repeat training (to evaluate average performance): "))
 	folds = eval(input("Specify the number of folds to be used during k-Fold cross-validation: "))
 	############# end of UI
 
-	############# dataset splitting and classifier evaluation written by Mark
+	############# dataset splitting and classifier evaluation written by Mark 
+	############# writing predicted vs. actual values to file written by Michael
 	accuracy = []
+	pva_file = open("pva.txt", "w")
 	for x in range(repetitions):
+		#dataset is split by stratifiedFolds (from kFoldCrossValidation file)
 		train_data, test_data, train_target, test_target = kFoldCrossValidation().stratifiedFolds(data.tolist(), target.tolist(), split_size, classes)
 
+		#model is trained using train_data, and tested on test_data
 		model = multiclassSVM(classes, features)
 		model.train(np.array(train_data),np.array(train_target),class_labels)
-		p = model.predict(test_data)
-		pr = model.probability_predict(test_data)
+		predictions = model.predict(test_data)
+
+		#write predictions for this repetition to file
+		to_write = "Predicted |"
+		max_label=0
+		for label in class_labels:
+			if len(label)>max_label:
+				max_label = len(label)
+
+		for i in predictions:
+			to_write += " {0:>{m}} |".format(i, m = max_label)
+
+		to_write += "Actual    |"
+
+		for i in test_target:
+			to_write += " {0:>{m}} |".format(i, m = max_label)
+
+		pva_file.write("")
 
 		correct = 0.0
 		incorrect = 0.0
-		for i in range(len(p)):
-			if p[i] == test_target[i]:
+		for i in range(len(predictions)):
+			if predictions[i] == test_target[i]:
 				correct += 1
 			else:
 				incorrect += 1
 		accuracy.append(correct/(incorrect+correct))
 
-		matrix, unclassified = confusionMatrix().main(class_labels, p, test_target)
+		matrix, unclassified = confusionMatrix().main(class_labels, predictions, test_target)
 		#print(matrix)
 		#print(unclassified)
 
